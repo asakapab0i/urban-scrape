@@ -2,16 +2,11 @@ from bs4 import BeautifulSoup
 from urllib2 import urlopen
 from time import sleep # be nice
 from slugify import slugify
+import string
 
 import sys
 
 import MySQLdb
-import pprint
-
-#setup database
-db = MySQLdb.connect(host="localhost",
-        user="",passwd="",db="")
-#end database
 
 BASE_URL = "http://www.urbandictionary.com"
 
@@ -20,6 +15,9 @@ def make_soup(url):
     return BeautifulSoup(html, "lxml")
 
 def get_page_links(link):
+    #set alphabet
+    alpha = list(string.ascii_lowercase)
+
     soup = make_soup(link)
     #get pagination number
     try:
@@ -32,7 +30,8 @@ def get_page_links(link):
 
     pages  = []
     for n in range(1, page+1):
-        pages.append(link + "&page="+str(n))
+        for l in alpha:
+            pages.append(link + "&page="+str(n))
 
     return pages
 
@@ -49,7 +48,19 @@ def get_word_details(word_url):
     soup = make_soup(word_url)
     #find all pages for a word
 
-    pages = get_page_link(word_url)
+    #get pagination number
+    try:
+        page = soup.find('ul', class_="pagination").find('li',class_="next").find_previous_sibling('li')
+        if page is not None:
+            page = int(page.get_text())
+        print page
+    except:
+        return
+
+    pages  = []
+    for n in range(1, page+1):
+        pages.append(link + "&page="+str(n))
+
 
     #iterate to page link and get the words
     for p in pages:
@@ -80,16 +91,30 @@ def get_word_details(word_url):
                 pass
 
             word_data.append({
-                    "word":word,
-                    "meaning":meaning,
-                    "example":example,
-                    "contributor":contrib,
-                    })
+                "word":word,
+                "meaning":meaning,
+                "example":example,
+                "contributor":contrib,
+                })
 
-        return word_data
+            return word_data
 
 
 if __name__ == '__main__':
+    alpha = list(string.ascii_lowercase)
+    alpha2 = list(string.ascii_lowercase)
 
-    print get_page_link("http://www.urbandictionary.com/browse.php?word=aa")
+    suffix = []
+    for l in alpha:
+        for l2 in alpha2:
+            suffix.append(str(l)+str(l2))
+
+    pages = []
+    for l in suffix:
+        pages.append(get_page_links("http://www.urbandictionary.com/browse.php?"+l))
+        print pages
+        sys.exit(0)
+
+
+
 
